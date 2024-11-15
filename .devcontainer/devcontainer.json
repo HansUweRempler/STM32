@@ -24,7 +24,8 @@
 				"ms-vscode.cmake-tools",
 				"ms-vscode.cpptools-themes",
 				"ms-vscode.cpptools-extension-pack",
-				"GitHub.copilot-chat"
+				"GitHub.copilot-chat",
+				"ms-vscode.makefile-tools"
 			]
 		}
 	}

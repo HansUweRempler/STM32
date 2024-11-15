@@ -4,4 +4,4 @@ FROM mcr.microsoft.com/vscode/devcontainers/base:ubuntu
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     && apt-get -y install --no-install-recommends build-essential cmake git stlink-tools \
     && apt-get -y install gcc-arm-none-eabi \
-    && git clone https://github.com/FreeRTOS/FreeRTOS.git /usr/local/src/FreeRTOS
+    && git clone https://github.com/FreeRTOS/FreeRTOS-Kernel.git /usr/local/src/FreeRTOS-Kernel

@@ -1,3 +1,16 @@
+Gitpod Cloud Development Environment (CDE) Experiment
+====
+
+The `devcontainer.json` refers to the Dockerfile which controls the tools available in your environment.
+In this experiment it's base is Ubuntu with VS Code included. Some tools and additional libs are installed therein via apt and git clone.
+Additionally it configures the VS Code extensions that are included in the remote environment.
+
+To forward the locally attached HW start with making it available in the local WSL Ubuntu.
+Powershell
+```
+d
+```  
+
 STM32
 =====
 

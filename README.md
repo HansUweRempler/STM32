@@ -1,5 +1,5 @@
-====
 Gitpod Cloud Development Environment (CDE) Experiment
+====
 
 The `devcontainer.json` refers to the Dockerfile which controls the tools available in your environment.
 In this experiment it's base is Ubuntu with VS Code included. Some tools and additional libs are installed therein via apt and git clone.
@@ -21,6 +21,84 @@ ls -l /dev/bus/usb/001/005
 ```
 
 Flash via `st-flash --debug write main.bin 0x08000000`
+
+USB port forward
+====
+To forward a local ST-Link to a cloud-based VM, you can use USB over IP solutions. One such solution is `usbip`, which allows you to share USB devices over the network. Here are the steps to set it up:
+
+### On Your Local Machine:
+
+1. **Install `usbip`**:
+   ```sh
+   sudo apt-get install usbip
+   sudo apt-get install linux-tools-$(uname -r)
+   ```
+
+2. **Load USBIP Kernel Modules**:
+   ```sh
+   sudo modprobe usbip-core
+   sudo modprobe usbip-host
+   sudo modprobe vhci-hcd
+   ```
+
+3. **List USB Devices**:
+   ```sh
+   usbip list -l
+   ```
+
+4. **Bind the ST-Link Device**:
+   - Find the bus ID of your ST-Link device from the previous command's output.
+   ```sh
+   sudo usbip bind -b <busid>
+   ```
+
+5. **Start USBIP Daemon**:
+   ```sh
+   sudo usbipd -D
+   ```
+
+### On Your Cloud VM:
+
+1. **Install `usbip`**:
+   ```sh
+   sudo apt-get install usbip
+   sudo apt-get install linux-tools-$(uname -r)
+   ```
+
+2. **Load USBIP Kernel Modules**:
+   ```sh
+   sudo modprobe usbip-core
+   sudo modprobe vhci-hcd
+   ```
+
+3. **Attach the USB Device**:
+   - Replace `<local-machine-ip>` with the IP address of your local machine.
+   ```sh
+   sudo usbip attach -r <local-machine-ip> -b <busid>
+   ```
+
+4. **Verify the Device**:
+   ```sh
+   lsusb
+   ```
+
+### Example:
+
+Assuming the bus ID of your ST-Link device is `1-1` and your local machine's IP address is `192.168.1.100`:
+
+**On Local Machine**:
+```sh
+sudo usbip bind -b 1-1
+sudo usbipd -D
+```
+
+**On Cloud VM**:
+```sh
+sudo usbip attach -r 192.168.1.100 -b 1-1
+lsusb
+```
+
+This setup should allow you to forward your local ST-Link to your cloud-based VM and use it for debugging your embedded project.
 
 STM32
 =====

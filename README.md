@@ -5,6 +5,7 @@ The `devcontainer.json` refers to the Dockerfile which controls the tools availa
 In this experiment it's base is Ubuntu with VS Code included. Some tools and additional libs are installed therein via apt and git clone.
 Additionally it configures the VS Code extensions that are included in the remote environment.
 
+## USB device in WSL
 To forward the locally attached HW start with making it available in the local WSL Ubuntu.
 
 1. Install USBIPD on WSL
@@ -12,101 +13,68 @@ Go to the latest release page for the usbipd-win project: https://github.com/dor
 Select the .msi file, which will download the installer. (You may get a warning asking you to confirm that you trust this download).
 Run the downloaded usbipd-win_x.msi installer file.
 
-2. Powershell
+2. Attach USB device to WSL
 Connect STM32 dev kit via USB
 ```
-usbipd list
-usbipd bind -i 0483:374b
+PS C:\WINDOWS\system32> usbipd list
+Connected:
+BUSID  VID:PID    DEVICE                                                        STATE
+2-1    0483:374b  ST-Link Debug, USB Mass Storage Device, USB Serial Device...  Not shared
 
-usbipd attach --wsl -i 0483:374b <- for using locally in WSL
-usbip attach -r <local-machine-ip> -b 0483:374b <- for using with remote CDE
-```  
+PS C:\WINDOWS\system32> usbipd bind  -i 0483:374b
+usbipd: info: Device with hardware-id '0483:374b' found at busid '2-1'.
+
+PS C:\WINDOWS\system32> usbipd attach --wsl -i 0483:374b
+usbipd: info: Device with hardware-id '0483:374b' found at busid '2-1'.
+usbipd: info: Using WSL distribution 'Ubuntu' to attach; the device will be available in all WSL 2 distributions.
+usbipd: info: Using IP address 172.25.224.1 to reach the host.
+```
 
 3. WSL:
 ```
-lsusb
-ls -l /dev/bus/usb/001/005
+<USER>@<COMPUTERNAME>:~$ lsusb
+Bus 001 Device 001: ID 1d6b:0002 Linux Foundation 2.0 root hub
+Bus 001 Device 002: ID 0483:374b STMicroelectronics ST-LINK/V2.1
+
+<USER>@<COMPUTERNAME>:~$ ls -l /dev/bus/usb/001/002
+crw-rw-r-- 1 root root 189, 1 Nov 18 10:21 /dev/bus/usb/001/002
 ```
 
+4. Test flash
 Flash via `st-flash --debug write main.bin 0x08000000`
 
-USB port forward
-====
+## USB device in CDE
 To forward a local ST-Link to a cloud-based VM, you can use USB over IP solutions. One such solution is `usbip`, which allows you to share USB devices over the network. Here are the steps to set it up:
 
-### On Your Local Machine:
+1. Install USBIPD on WSL
+See above
 
-1. **Install `usbip`**:
-   ```sh
-   sudo apt-get install usbip
-   sudo apt-get install linux-tools-$(uname -r)
-   ```
+2. Install USBPIP on CDE (e.g. a runner on AWS)
+https://github.com/dorssel/usbipd-win/discussions/405#discussioncomment-2876944
+https://askubuntu.com/questions/1303403/how-to-install-usbip-vhci-hcd-drivers-on-an-aws-ec2-ubuntu-kernel-version
 
-2. **Load USBIP Kernel Modules**:
-   ```sh
-   sudo modprobe usbip-core
-   sudo modprobe usbip-host
-   sudo modprobe vhci-hcd
-   ```
-
-3. **List USB Devices**:
-   ```sh
-   usbip list -l
-   ```
-
-4. **Bind the ST-Link Device**:
-   - Find the bus ID of your ST-Link device from the previous command's output.
-   ```sh
-   sudo usbip bind -b <busid>
-   ```
-
-5. **Start USBIP Daemon**:
-   ```sh
-   sudo usbipd -D
-   ```
-
-### On Your Cloud VM:
-
-1. **Install `usbip`**:
-   ```sh
-   sudo apt-get install usbip
-   sudo apt-get install linux-tools-$(uname -r)
-   ```
-
-2. **Load USBIP Kernel Modules**:
-   ```sh
-   sudo modprobe usbip-core
-   sudo modprobe vhci-hcd
-   ```
-
-3. **Attach the USB Device**:
-   - Replace `<local-machine-ip>` with the IP address of your local machine.
-   ```sh
-   sudo usbip attach -r <local-machine-ip> -b <busid>
-   ```
-
-4. **Verify the Device**:
-   ```sh
-   lsusb
-   ```
-
-### Example:
-
-Assuming the bus ID of your ST-Link device is `1-1` and your local machine's IP address is `192.168.1.100`:
-
-**On Local Machine**:
-```sh
-sudo usbip bind -b 1-1
-sudo usbipd -D
+2. Detach if USB device is still locally attached
+For attach see above
+```
+PS C:\WINDOWS\system32> usbipd detach -i 0483:374b
+usbipd: info: Device with hardware-id '0483:374b' found at busid '2-1'.
 ```
 
-**On Cloud VM**:
-```sh
-sudo usbip attach -r 192.168.1.100 -b 1-1
-lsusb
+3. SSH tunnel
+From local PC to remote CDE (e.g. a runner on AWS)
+```
+ssh -i .\ubuntu20.04.pem -R 2001:localhost:3240 ubuntu@ec2-xx-xx-xx-xx.eu-west-1.compute.amazonaws.com
 ```
 
-This setup should allow you to forward your local ST-Link to your cloud-based VM and use it for debugging your embedded project.
+4. Attach USB device inside remote CDE (e.g. a runner on AWS)
+```
+ubuntu@ip-xx-xx-xx-xx:~$ sudo usbip --tcp-port 2001 attach -r 127.0.0.1 -b 6-1
+ubuntu@ip-xx-xx-xx-xx:~$ sudo usbip --tcp-port 2001 attach -r 127.0.0.1 -i 0483:374b
+```  
+
+5. Test flash
+Flash via `st-flash --debug write main.bin 0x08000000`
+
 
 STM32
 =====

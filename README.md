@@ -6,15 +6,23 @@ In this experiment it's base is Ubuntu with VS Code included. Some tools and add
 Additionally it configures the VS Code extensions that are included in the remote environment.
 
 To forward the locally attached HW start with making it available in the local WSL Ubuntu.
-Powershell
+
+1. Install USBIPD on WSL
+Go to the latest release page for the usbipd-win project: https://github.com/dorssel/usbipd-win/releases .
+Select the .msi file, which will download the installer. (You may get a warning asking you to confirm that you trust this download).
+Run the downloaded usbipd-win_x.msi installer file.
+
+2. Powershell
+Connect STM32 dev kit via USB
 ```
-plugin STM32 dev kit
 usbipd list
 usbipd bind -i 0483:374b
-usbipd attach --wsl -i 0483:374b
+
+usbipd attach --wsl -i 0483:374b <- for using locally in WSL
+usbip attach -r <local-machine-ip> -b 0483:374b <- for using with remote CDE
 ```  
 
-WSL:
+3. WSL:
 ```
 lsusb
 ls -l /dev/bus/usb/001/005

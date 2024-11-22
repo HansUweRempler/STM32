@@ -45,7 +45,27 @@ Connect via SSH to a CDE and create tunnel for port forwarding. The CDE - at lea
 
 In this example, the CDE is a local WSL2. The right now (22.11.2024) WSL2 Linux kernel has the USBIP kernel modules included but does not come with the user space tools. They need to be compiled. 
 
-Start local SSH server in WSL2
+##### Compile WSL2 Linux kernel user space tools
+```
+sudo gh repo clone microsoft/WSL2-Linux-Kernel /usr/src/WSL2-Linux-Kernel
+sudo apt install build-essential flex bison libssl-dev libelf-dev libncurses-dev autoconf libudev-dev libtool
+uname -r
+git tag -l *5.15*
+sudo git checkout linux-msft-wsl-5.15.153.1
+sudo make KCONFIG_CONFIG=Microsoft/config-wsl
+
+cd /usr/src/WSL2-Linux-Kernel/tools/usb/usbip
+sudo ./autogen.sh
+sudo ./configure
+sudo ./make
+/usr/src/WSL2-Linux-Kernel/tools/usb/usbip/src/usbip list -r localhost --tcp-port 2001
+nc -v localhost 2001
+sudo /usr/src/WSL2-Linux-Kernel/tools/usb/usbip/src/usbip --tcp-port 2001 list -r localhost
+sudo /usr/src/WSL2-Linux-Kernel/tools/usb/usbip/src/usbip --tcp-port 2001 attach -r localhost -b 2-1
+lsusb
+```
+
+##### Start local SSH server in WSL2
 ```
 root@<COMPUTERNAME>:~# apt install openssh-server net-tools
 [...]
@@ -56,9 +76,16 @@ root@<COMPUTERNAME>:~# nano /etc/ssh/sshd_config
 [...]
 
 root@<COMPUTERNAME>:~# service ssh start
+sudo su
+apt install openssh-server
+nano /etc/ssh/sshd_config
+service sshd start
+exit
+ssh-keygen
+nano /home/<USERNAME>/.ssh/authorized_keys
 ```
 
-SSH into local WSL2
+##### SSH into local WSL2
 ```
 PS C:\WINDOWS\system32> ssh -R 2001:localhost:3240 <USERNAME>@localhost -p 2222
 [...]
@@ -69,50 +96,17 @@ Connection to localhost (127.0.0.1) 2001 port [tcp/*] succeeded!
 usbip --tcp-port 2001 attach -r localhost -b 2-1
 ```
 
-1. WSL:
-<USER>@<COMPUTERNAME>:~$ lsusb
-Bus 001 Device 001: ID 1d6b:0002 Linux Foundation 2.0 root hub
-Bus 001 Device 002: ID 0483:374b STMicroelectronics ST-LINK/V2.1
-
-<USER>@<COMPUTERNAME>:~$ ls -l /dev/bus/usb/001/002
-crw-rw-r-- 1 root root 189, 1 Nov 18 10:21 /dev/bus/usb/001/002
-
-
-1. Test flash
-Flash via `st-flash --debug write main.bin 0x08000000`
-
-## USB device in CDE
-To forward a local ST-Link to a cloud-based VM, you can use USB over IP solutions. One such solution is `usbip`, which allows you to share USB devices over the network. Here are the steps to set it up:
-
-1. Install USBIPD on WSL
-See above
-
-2. Install USBPIP on CDE (e.g. a runner on AWS)
-https://github.com/dorssel/usbipd-win/discussions/405#discussioncomment-2876944
-https://askubuntu.com/questions/1303403/how-to-install-usbip-vhci-hcd-drivers-on-an-aws-ec2-ubuntu-kernel-version
-
-2. Detach if USB device is still locally attached
-For attach see above
+##### Test flash
 ```
-PS C:\WINDOWS\system32> usbipd detach -i 0483:374b
-usbipd: info: Device with hardware-id '0483:374b' found at busid '2-1'.
+PS C:\Users\<USERNAME>\.ssh> -R 2001:localhost:3240 ssh <USERNAME>@localhost
+sudo apt install build-essential cmake git stlink-tools gcc-arm-none-eabi
+sudo git clone https://github.com/FreeRTOS/FreeRTOS-Kernel.git /usr/local/src
+/FreeRTOS-Kernel
+...compile the project...
+st-flash --debug write main.bin 0x08000000
 ```
 
-3. SSH tunnel
-From local PC to remote CDE (e.g. a runner on AWS)
-```
-ssh -i .\ubuntu20.04.pem -R 2001:localhost:3240 ubuntu@ec2-xx-xx-xx-xx.eu-west-1.compute.amazonaws.com
-```
-
-4. Attach USB device inside remote CDE (e.g. a runner on AWS)
-```
-ubuntu@ip-xx-xx-xx-xx:~$ sudo usbip --tcp-port 2001 attach -r 127.0.0.1 -b 6-1
-ubuntu@ip-xx-xx-xx-xx:~$ sudo usbip --tcp-port 2001 attach -r 127.0.0.1 -i 0483:374b
-```  
-
-5. Test flash
-Flash via `st-flash --debug write main.bin 0x08000000`
-
+---
 
 STM32
 =====

@@ -1,46 +1,84 @@
 Gitpod Cloud Development Environment (CDE) Experiment
 ====
 
-The `devcontainer.json` refers to the Dockerfile which controls the tools available in your environment.
-In this experiment it's base is Ubuntu with VS Code included. Some tools and additional libs are installed therein via apt and git clone.
-Additionally it configures the VS Code extensions that are included in the remote environment.
+## Gitpod Flex
+Gitpod web interface https://app.gitpod.io/projects let you then configure runners and environments.
+- Runner: The infrastructure that runs your dev environments. In Gitpod Flex this is a VM either running on a local Mac or on AWS. 
+- Dev container: The folder `.devcontainer` describes the dev container that host your environment configurations, including all the tools, dependencies and access required for development. In this experiment its base is a Ubuntu Docker container with VS Code included. Some tools and additional libs are installed therein via apt and git clone.
+Additionally, it configures the VS Code extensions that are included in the remote environment.
 
-## USB device in WSL
-To forward the locally attached HW start with making it available in the local WSL Ubuntu.
+## Coder
+Open source self hosting CDE provider. In this experiment, Coder is installed in WSL2. The local web server (localhost http://127.0.0.1:3000/login) is exposed via a public url: https://14ijgt88gbeq8.pit-1.try.coder.app/workspaces.
 
-1. Install USBIPD on WSL
-Go to the latest release page for the usbipd-win project: https://github.com/dorssel/usbipd-win/releases .
-Select the .msi file, which will download the installer. (You may get a warning asking you to confirm that you trust this download).
-Run the downloaded usbipd-win_x.msi installer file.
+## USB Forwarding
+To forward the locally attached HW you need make to it available for IP-connections. The USBIP package can do this for a Windows host - assuming you're using a Windows computer
 
-2. Attach USB device to WSL
-Connect STM32 dev kit via USB
 ```
-PS C:\WINDOWS\system32> usbipd list
+DevKit <-USB-> Windows PC (USBIP server) <-SSH tunnel-> CDE (USBIP client) 
+```
+
+### USBIP Server
+
+#### Install Windows USBIPD
+Go to the latest release page for the usbipd-win project: https://github.com/dorssel/usbipd-win/releases. Select the .msi file, which will download the installer. Run the downloaded usbipd-win_x.msi installer file.
+
+#### Enable USB Device Sharing
+Connect STM32 dev kit via USB, run a PowerShell with admin rights.
+
+```
+PS C:\WINDOWS\system32> usbipd.exe list
 Connected:
 BUSID  VID:PID    DEVICE                                                        STATE
 2-1    0483:374b  ST-Link Debug, USB Mass Storage Device, USB Serial Device...  Not shared
+[...]
 
-PS C:\WINDOWS\system32> usbipd bind  -i 0483:374b
-usbipd: info: Device with hardware-id '0483:374b' found at busid '2-1'.
-
-PS C:\WINDOWS\system32> usbipd attach --wsl -i 0483:374b
-usbipd: info: Device with hardware-id '0483:374b' found at busid '2-1'.
-usbipd: info: Using WSL distribution 'Ubuntu' to attach; the device will be available in all WSL 2 distributions.
-usbipd: info: Using IP address 172.25.224.1 to reach the host.
+PS C:\WINDOWS\system32> usbipd.exe bind -b 2-1
+PS C:\WINDOWS\system32> usbipd.exe list
+Connected:
+BUSID  VID:PID    DEVICE                                                        STATE
+2-1    0483:374b  ST-Link Debug, USB Mass Storage Device, USB Serial Device...  Shared
+[...]
 ```
 
-3. WSL:
+#### Attach to Shared Device
+Connect via SSH to a CDE and create tunnel for port forwarding. The CDE - at least in this experiment - is a Docker container that uses some Linux kernel. The host Windows machine has port 3240 that is forwarded to the CDE port 2100. It is important that the Linux kernel has the USBIP kernel drivers included or available. If not, you need to compile them manually as `.ko` files and load them via `modprobe` `insmod`. Only with those drivers you can run the user space tools to exec attaching to a shared device. For example, 
+
+In this example, the CDE is a local WSL2. The right now (22.11.2024) WSL2 Linux kernel has the USBIP kernel modules included but does not come with the user space tools. They need to be compiled. 
+
+Start local SSH server in WSL2
 ```
+root@<COMPUTERNAME>:~# apt install openssh-server net-tools
+[...]
+
+root@<COMPUTERNAME>:~# nano /etc/ssh/sshd_config
++++ Port 2222
++++ ListenAddress 0.0.0.0
+[...]
+
+root@<COMPUTERNAME>:~# service ssh start
+```
+
+SSH into local WSL2
+```
+PS C:\WINDOWS\system32> ssh -R 2001:localhost:3240 <USERNAME>@localhost -p 2222
+[...]
+
+<USERNAME>@<COMPUTERNAME>:~$ nc -z localhost 2001 || echo "no tunnel open"
+Connection to localhost (127.0.0.1) 2001 port [tcp/*] succeeded!
+
+usbip --tcp-port 2001 attach -r localhost -b 2-1
+```
+
+1. WSL:
 <USER>@<COMPUTERNAME>:~$ lsusb
 Bus 001 Device 001: ID 1d6b:0002 Linux Foundation 2.0 root hub
 Bus 001 Device 002: ID 0483:374b STMicroelectronics ST-LINK/V2.1
 
 <USER>@<COMPUTERNAME>:~$ ls -l /dev/bus/usb/001/002
 crw-rw-r-- 1 root root 189, 1 Nov 18 10:21 /dev/bus/usb/001/002
-```
 
-4. Test flash
+
+1. Test flash
 Flash via `st-flash --debug write main.bin 0x08000000`
 
 ## USB device in CDE

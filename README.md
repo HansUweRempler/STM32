@@ -8,7 +8,9 @@ Gitpod web interface https://app.gitpod.io/projects let you then configure runne
 Additionally, it configures the VS Code extensions that are included in the remote environment.
 
 ## Coder
-Open source self hosting CDE provider. In this experiment, Coder is installed in WSL2. The local web server (localhost http://127.0.0.1:3000/login) is exposed via a public url: https://14ijgt88gbeq8.pit-1.try.coder.app/workspaces.
+Open source self hosting CDE provider. In this experiment, Coder is installed in WSL2. The local web server (localhost http://127.0.0.1:3000/login) is exposed via a public url: https://<CUSTOMSUBDOMAIN>.pit-1.try.coder.app/workspaces.
+
+Here, the coder server needs to be started manually via `<USER>@<COMPUTERNAME>:~$ coder server`. You can then create Docker based templates and on top of them your workspaces.
 
 ## USB Forwarding
 To forward the locally attached HW you need make to it available for IP-connections. The USBIP package can do this for a Windows host - assuming you're using a Windows computer
@@ -41,67 +43,53 @@ BUSID  VID:PID    DEVICE                                                        
 ```
 
 #### Attach to Shared Device
-Connect via SSH to a CDE and create tunnel for port forwarding. The CDE - at least in this experiment - is a Docker container that uses some Linux kernel. The host Windows machine has port 3240 that is forwarded to the CDE port 2100. It is important that the Linux kernel has the USBIP kernel drivers included or available. If not, you need to compile them manually as `.ko` files and load them via `modprobe` `insmod`. Only with those drivers you can run the user space tools to exec attaching to a shared device. For example, 
+Connect via SSH to a CDE and create a tunnel for port forwarding. The CDE - at least in this experiment - is a Docker container that uses some Linux kernel. The host Windows machine is using port 3240 that is forwarded to the CDE port 2100. It is important that the Linux kernel has the USBIP kernel drivers included or available. If not, you need to compile them manually as `.ko` files and load them via `modprobe` or `insmod`. Only with those drivers you can run the user space tools to attach to a shared device.
 
-In this example, the CDE is a local WSL2. The right now (22.11.2024) WSL2 Linux kernel has the USBIP kernel modules included but does not come with the user space tools. They need to be compiled. 
+In this example, the CDE is running a local WSL2 kernel. The right now (22.11.2024) WSL2 Linux kernel has the USBIP kernel modules included but does not come with the user space tools. They need to be compiled. 
 
 ##### Compile WSL2 Linux kernel user space tools
 ```
-sudo gh repo clone microsoft/WSL2-Linux-Kernel /usr/src/WSL2-Linux-Kernel
-sudo apt install build-essential flex bison libssl-dev libelf-dev libncurses-dev autoconf libudev-dev libtool
+sudo su
+apt install gh build-essential flex bison libssl-dev libelf-dev libncurses-dev autoconf libudev-dev libtool
+gh auth login
+gh repo clone microsoft/WSL2-Linux-Kernel /usr/src/WSL2-Linux-Kernel
+cd /usr/src/WSL2-Linux-Kernel
 uname -r
 git tag -l *5.15*
-sudo git checkout linux-msft-wsl-5.15.153.1
-sudo make KCONFIG_CONFIG=Microsoft/config-wsl
-
+git checkout linux-msft-wsl-5.15.153.1
+make KCONFIG_CONFIG=Microsoft/config-wsl
 cd /usr/src/WSL2-Linux-Kernel/tools/usb/usbip
-sudo ./autogen.sh
-sudo ./configure
-sudo ./make
-/usr/src/WSL2-Linux-Kernel/tools/usb/usbip/src/usbip list -r localhost --tcp-port 2001
-nc -v localhost 2001
-sudo /usr/src/WSL2-Linux-Kernel/tools/usb/usbip/src/usbip --tcp-port 2001 list -r localhost
-sudo /usr/src/WSL2-Linux-Kernel/tools/usb/usbip/src/usbip --tcp-port 2001 attach -r localhost -b 2-1
-lsusb
+./autogen.sh
+./configure
+./make install
+ldconfig
 ```
 
 ##### Start local SSH server in WSL2
 ```
-root@<COMPUTERNAME>:~# apt install openssh-server net-tools
-[...]
-
-root@<COMPUTERNAME>:~# nano /etc/ssh/sshd_config
+sudo su
+apt install openssh-server net-tools
+nano /etc/ssh/sshd_config
 +++ Port 2222
 +++ ListenAddress 0.0.0.0
-[...]
-
-root@<COMPUTERNAME>:~# service ssh start
-sudo su
-apt install openssh-server
-nano /etc/ssh/sshd_config
-service sshd start
-exit
-ssh-keygen
-nano /home/<USERNAME>/.ssh/authorized_keys
+service ssh start
 ```
 
 ##### SSH into local WSL2
 ```
 PS C:\WINDOWS\system32> ssh -R 2001:localhost:3240 <USERNAME>@localhost -p 2222
-[...]
-
-<USERNAME>@<COMPUTERNAME>:~$ nc -z localhost 2001 || echo "no tunnel open"
-Connection to localhost (127.0.0.1) 2001 port [tcp/*] succeeded!
-
-usbip --tcp-port 2001 attach -r localhost -b 2-1
+nc -z localhost 2001 || echo "no tunnel open"
+/usr/src/WSL2-Linux-Kernel/tools/usb/usbip/src/usbip --tcp-port 2001 list -r localhost
+sudo /usr/src/WSL2-Linux-Kernel/tools/usb/usbip/src/usbip --tcp-port 2001 attach -r localhost -b 2-1
+lsusb
 ```
 
 ##### Test flash
 ```
 PS C:\Users\<USERNAME>\.ssh> -R 2001:localhost:3240 ssh <USERNAME>@localhost
-sudo apt install build-essential cmake git stlink-tools gcc-arm-none-eabi
-sudo git clone https://github.com/FreeRTOS/FreeRTOS-Kernel.git /usr/local/src
-/FreeRTOS-Kernel
+sudo su
+apt install build-essential cmake git stlink-tools gcc-arm-none-eabi
+git clone https://github.com/FreeRTOS/FreeRTOS-Kernel.git /usr/local/src/FreeRTOS-Kernel
 ...compile the project...
 st-flash --debug write main.bin 0x08000000
 ```

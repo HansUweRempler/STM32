@@ -113,7 +113,7 @@ Thus, find out the public DNS of the running instance via AWS portal EC2 dashboa
 
 ```
 PS C:\Users\<USERNAME>\.ssh> cp \\wsl.localhost\Ubuntu\home\<USER>\.ssh\gitpod\id_ed25519 .\id_ed25519_wsl2
-PS C:\Users\<USERNAME>\.ssh> ssh -R 2001:ec2-x-xx-xx-xxx.eu-central-1.compute.amazonaws.com:3240 -i .\id_ed25519_wsl2 gitpod_devcontainer@ec2-x-xx-xx-xxx.eu-central-1.compute.amazonaws.com
+PS C:\Users\<USERNAME>\.ssh> ssh -R 2001:localhost:3240 -i .\id_ed25519_wsl2 gitpod_devcontainer@ec2-x-xx-xx-xxx.eu-central-1.compute.amazonaws.com
 nc -z localhost 2001 || echo "no tunnel open"
 <TODO> .../usb/usbip/src/usbip --tcp-port 2001 list -r localhost
 <TODO> sudo .../usb/usbip/src/usbip --tcp-port 2001 attach -r localhost -b 2-1

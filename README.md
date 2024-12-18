@@ -45,7 +45,7 @@ BUSID  VID:PID    DEVICE                                                        
 #### Attach to Shared Device
 Connect via SSH to a CDE and create a tunnel for port forwarding. The CDE - at least in this experiment - is a Docker container that uses some Linux kernel. The host Windows machine is using port 3240 that is forwarded to the CDE port 2100. It is important that the Linux kernel has the USBIP kernel drivers included or available. If not, you need to compile them manually as `.ko` files and load them via `modprobe` or `insmod`. Only with those drivers you can run the user space tools to attach to a shared device.
 
-### WSL2 (local)
+#### WSL2 (local)
 
 In this example, the CDE is running a local WSL2 kernel. The right now (22.11.2024) WSL2 Linux kernel has the USBIP kernel modules included but does not come with the user space tools. They need to be compiled. 
 

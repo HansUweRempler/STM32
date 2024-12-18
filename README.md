@@ -63,7 +63,7 @@ make KCONFIG_CONFIG=Microsoft/config-wsl
 cd /usr/src/WSL2-Linux-Kernel/tools/usb/usbip
 ./autogen.sh
 ./configure
-./make install
+make install
 ldconfig
 ```
 

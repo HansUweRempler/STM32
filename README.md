@@ -45,6 +45,8 @@ BUSID  VID:PID    DEVICE                                                        
 #### Attach to Shared Device
 Connect via SSH to a CDE and create a tunnel for port forwarding. The CDE - at least in this experiment - is a Docker container that uses some Linux kernel. The host Windows machine is using port 3240 that is forwarded to the CDE port 2100. It is important that the Linux kernel has the USBIP kernel drivers included or available. If not, you need to compile them manually as `.ko` files and load them via `modprobe` or `insmod`. Only with those drivers you can run the user space tools to attach to a shared device.
 
+#### WSL2 (local)
+
 In this example, the CDE is running a local WSL2 kernel. The right now (22.11.2024) WSL2 Linux kernel has the USBIP kernel modules included but does not come with the user space tools. They need to be compiled. 
 
 ##### Compile WSL2 Linux kernel user space tools
@@ -61,7 +63,7 @@ make KCONFIG_CONFIG=Microsoft/config-wsl
 cd /usr/src/WSL2-Linux-Kernel/tools/usb/usbip
 ./autogen.sh
 ./configure
-./make install
+make install
 ldconfig
 ```
 
@@ -86,7 +88,7 @@ lsusb
 
 ##### Test flash
 ```
-PS C:\Users\<USERNAME>\.ssh> -R 2001:localhost:3240 ssh <USERNAME>@localhost
+PS C:\WINDOWS\system32> ssh -R 2001:localhost:3240 <USERNAME>@localhost -p 2222
 sudo su
 apt install build-essential cmake git stlink-tools gcc-arm-none-eabi
 git clone https://github.com/FreeRTOS/FreeRTOS-Kernel.git /usr/local/src/FreeRTOS-Kernel
@@ -94,7 +96,32 @@ git clone https://github.com/FreeRTOS/FreeRTOS-Kernel.git /usr/local/src/FreeRTO
 st-flash --debug write main.bin 0x08000000
 ```
 
+
+#### Gitpod Flex (AWS)
+
+Go to your project and start/unpause your environment at https://app.gitpod.io/. You can SSH via WSL2 but this doesn't help if you want to forward a local USB device that is connected to a Windows machine.
+
+```
+# no use if Win USB device
+gitpod env ssh-config
+ssh xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx.gitpod.environment
+```
+
+Thus, find out the public DNS of the running instance via AWS portal EC2 dashboard. Use the Gitpod SSH key file to connect to it. But copy it first from WSL2 into Windows due to "UNPROTECTED PRIVATE KEY FILE" warning.
+
+##### SSH into AWS instance
+
+```
+PS C:\Users\<USERNAME>\.ssh> cp \\wsl.localhost\Ubuntu\home\<USER>\.ssh\gitpod\id_ed25519 .\id_ed25519_wsl2
+PS C:\Users\<USERNAME>\.ssh> ssh -R 2001:localhost:3240 -i .\id_ed25519_wsl2 gitpod_devcontainer@ec2-x-xx-xx-xxx.eu-central-1.compute.amazonaws.com
+nc -z localhost 2001 || echo "no tunnel open"
+<TODO> .../usb/usbip/src/usbip --tcp-port 2001 list -r localhost
+<TODO> sudo .../usb/usbip/src/usbip --tcp-port 2001 attach -r localhost -b 2-1
+lsusb
+```
+
 ---
+orig README.md
 
 STM32
 =====

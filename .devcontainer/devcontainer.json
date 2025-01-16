@@ -4,24 +4,17 @@
 // See https://aka.ms/devcontainer.json for more information.
 {
 	"name": "Gitpod",
-	// Use "image":
-	"image": "mcr.microsoft.com/devcontainers/base:ubuntu",
-	"privileged": true,
-	"runArgs": [
-	  "--cap-add=NET_ADMIN",
-	  "--device=/dev/ppp"
-	],
+	// Use "image": "mcr.microsoft.com/vscode/devcontainers/base:ubuntu",
 	// instead of the build to use a pre-built image.
-	// "build": {
-    //     "context": ".",
-    //     "dockerfile": "Dockerfile"
-    // },
+	"build": {
+        "context": ".",
+        "dockerfile": "Dockerfile"
+    },
 	// Features add additional features to your environment. See https://containers.dev/features
 	// Beware: features are not supported on all platforms and may have unintended side-effects.
 	"features": {
         "ghcr.io/devcontainers/features/docker-in-docker:2": {}
 	},
-	"initializeCommand": "modprobe ppp_generic", // <--------- SEE HERE, this runs on the host VM
 	"customizations": {
 		"vscode": {
 			"extensions": [
@@ -35,8 +28,5 @@
 				"ms-vscode.makefile-tools"
 			]
 		}
-	},
-	"mounts": [
-	  "source=/dev/ppp,target=/dev/ppp,type=bind"
-	]
+	}
 }

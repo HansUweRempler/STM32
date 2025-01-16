@@ -9,7 +9,7 @@
 	"features": {
 	  "ghcr.io/devcontainers/features/docker-in-docker:2": {}
 	},
-	"initializeCommand": "modprobe ppp_generic", // <--------- SEE HERE, this runs on the host VM
+	//"initializeCommand": "modprobe ppp_generic", // <--------- SEE HERE, this runs on the host VM
 	"postCreateCommand": "sudo apt-get update && sudo apt-get install -y ppp",
 	"remoteUser": "vscode",
 	"mounts": [

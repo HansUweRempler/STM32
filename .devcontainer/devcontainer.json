@@ -1,18 +1,42 @@
+// The Dev Container format allows you to configure your environment. At the heart of it
+// is a Docker image or Dockerfile which controls the tools available in your environment.
+//
+// See https://aka.ms/devcontainer.json for more information.
 {
-	"name": "Ubuntu Dev Container",
+	"name": "Gitpod",
+	// Use "image":
 	"image": "mcr.microsoft.com/devcontainers/base:ubuntu",
 	"privileged": true,
 	"runArgs": [
 	  "--cap-add=NET_ADMIN",
 	  "--device=/dev/ppp"
 	],
+	// instead of the build to use a pre-built image.
+	// "build": {
+    //     "context": ".",
+    //     "dockerfile": "Dockerfile"
+    // },
+	// Features add additional features to your environment. See https://containers.dev/features
+	// Beware: features are not supported on all platforms and may have unintended side-effects.
 	"features": {
-	  "ghcr.io/devcontainers/features/docker-in-docker:2": {}
+        "ghcr.io/devcontainers/features/docker-in-docker:2": {}
 	},
-	//"initializeCommand": "modprobe ppp_generic", // <--------- SEE HERE, this runs on the host VM
-	"postCreateCommand": "sudo apt-get update && sudo apt-get install -y ppp",
-	"remoteUser": "vscode",
+	"initializeCommand": "modprobe ppp_generic", // <--------- SEE HERE, this runs on the host VM
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"ms-vscode.cpptools",
+				"ms-azuretools.vscode-docker",
+				"GitHub.copilot",
+				"ms-vscode.cmake-tools",
+				"ms-vscode.cpptools-themes",
+				"ms-vscode.cpptools-extension-pack",
+				"GitHub.copilot-chat",
+				"ms-vscode.makefile-tools"
+			]
+		}
+	},
 	"mounts": [
 	  "source=/dev/ppp,target=/dev/ppp,type=bind"
 	]
-  }
+}
